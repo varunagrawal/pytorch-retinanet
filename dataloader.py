@@ -34,7 +34,7 @@ class CocoDataset(Dataset):
         self.set_name = set_name
         self.transform = transform
 
-        self.coco      = COCO(os.path.join(self.root_dir, 'annotations', 'instances_' + self.set_name + '.json'))
+        self.coco      = COCO(os.path.join(self.root_dir, 'annotations', 'instances_' + self.set_name + '.cars.json'))
         self.image_ids = self.coco.getImgIds()
 
         self.load_classes()
@@ -72,7 +72,7 @@ class CocoDataset(Dataset):
 
     def load_image(self, image_index):
         image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
-        path       = os.path.join(self.root_dir, 'images', self.set_name, image_info['file_name'])
+        path       = os.path.join(self.root_dir, self.set_name, image_info['file_name'])
         img = skimage.io.imread(path)
 
         if len(img.shape) == 2:
@@ -359,7 +359,7 @@ class Resizer(object):
             scale = max_side / largest_side
 
         # resize the image with the computed scale
-        image = skimage.transform.resize(image, (int(round(rows*scale)), int(round((cols*scale)))))
+        image = skimage.transform.resize(image, (int(round(rows*scale)), int(round((cols*scale)))), mode='constant', anti_aliasing=True)
         rows, cols, cns = image.shape
 
         pad_w = 32 - rows%32
