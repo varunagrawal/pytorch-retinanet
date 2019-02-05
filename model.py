@@ -6,13 +6,10 @@ import torch.utils.model_zoo as model_zoo
 from utils import BasicBlock, Bottleneck, BBoxTransform, ClipBoxes
 from anchors import Anchors
 import losses
-from lib.nms.pth_nms import pth_nms
+# from lib.nms.pth_nms import pth_nms
+from torchvision.layers import nms
 
-def nms(dets, thresh):
-    "Dispatch to either CPU or GPU NMS implementations.\
-    Accept dets as tensor"""
-    return pth_nms(dets, thresh)
-
+    
 model_urls = {
     'resnet18': 'https://download.pytorch.org/models/resnet18-5c106cde.pth',
     'resnet34': 'https://download.pytorch.org/models/resnet34-333f7ec4.pth',
@@ -21,18 +18,27 @@ model_urls = {
     'resnet152': 'https://download.pytorch.org/models/resnet152-b121ed2d.pth',
 }
 
+class Upsample(nn.Module):
+    def __init__(self, scale_factor, mode='bilinear'):
+        super().__init__()
+        self.scale_factor = scale_factor
+        self.mode = mode
+
+    def forward(self, x):
+        return nn.functional.interpolate(x, scale_factor=self.scale_factor, mode=self.mode)
+
 class PyramidFeatures(nn.Module):
     def __init__(self, C3_size, C4_size, C5_size, feature_size=256):
         super(PyramidFeatures, self).__init__()
         
         # upsample C5 to get P5 from the FPN paper
         self.P5_1           = nn.Conv2d(C5_size, feature_size, kernel_size=1, stride=1, padding=0)
-        self.P5_upsampled   = nn.Upsample(scale_factor=2, mode='nearest')
+        self.P5_upsampled   = Upsample(scale_factor=2, mode='nearest')
         self.P5_2           = nn.Conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
 
         # add P5 elementwise to C4
         self.P4_1           = nn.Conv2d(C4_size, feature_size, kernel_size=1, stride=1, padding=0)
-        self.P4_upsampled   = nn.Upsample(scale_factor=2, mode='nearest')
+        self.P4_upsampled   = Upsample(scale_factor=2, mode='nearest')
         self.P4_2           = nn.Conv2d(feature_size, feature_size, kernel_size=3, stride=1, padding=1)
 
         # add P4 elementwise to C3
@@ -235,6 +241,7 @@ class ResNet(nn.Module):
 
         if self.training:
             img_batch, annotations = inputs
+            annotations = annotations.cpu()
         else:
             img_batch = inputs
             
@@ -250,14 +257,15 @@ class ResNet(nn.Module):
 
         features = self.fpn([x2, x3, x4])
 
-        regression = torch.cat([self.regressionModel(feature) for feature in features], dim=1)
+        regression = torch.cat([self.regressionModel(feature) for feature in features], dim=1).cpu()
 
-        classification = torch.cat([self.classificationModel(feature) for feature in features], dim=1)
+        classification = torch.cat([self.classificationModel(feature) for feature in features], dim=1).cpu()
 
-        anchors = self.anchors(img_batch)
+        anchors = self.anchors(img_batch).cpu()
 
         if self.training:
             return self.focalLoss(classification, regression, anchors, annotations)
+
         else:
             transformed_anchors = self.regressBoxes(anchors, regression)
             transformed_anchors = self.clipBoxes(transformed_anchors, img_batch)
@@ -274,7 +282,8 @@ class ResNet(nn.Module):
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
             scores = scores[:, scores_over_thresh, :]
 
-            anchors_nms_idx = nms(torch.cat([transformed_anchors, scores], dim=2)[0, :, :], 0.5)
+            anchors_nms_idx = nms(transformed_anchors[0, :, :], scores[0, :, :].squeeze(), 0.5)
+            # anchors_nms_idx = nms(torch.cat([transformed_anchors, scores], dim=2)[0, :, :], 0.5)
 
             nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(dim=1)
 
