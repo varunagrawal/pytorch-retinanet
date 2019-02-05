@@ -25,8 +25,6 @@ from torch.utils.data import Dataset, DataLoader
 import coco_eval
 import csv_eval
 
-assert torch.__version__.split('.')[1] == '4'
-
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
 
@@ -51,8 +49,8 @@ def main(args=None):
 		if parser.coco_path is None:
 			raise ValueError('Must provide --coco_path when training on COCO,')
 
-		dataset_train = CocoDataset(parser.coco_path, set_name='train2017', transform=transforms.Compose([Normalizer(), Augmenter(), Resizer()]))
-		dataset_val = CocoDataset(parser.coco_path, set_name='val2017', transform=transforms.Compose([Normalizer(), Resizer()]))
+		dataset_train = CocoDataset(parser.coco_path, set_name='train2014', transform=transforms.Compose([Normalizer(), Augmenter(), Resizer()]))
+		dataset_val = CocoDataset(parser.coco_path, set_name='val2014', transform=transforms.Compose([Normalizer(), Resizer()]))
 
 	elif parser.dataset == 'csv':
 
@@ -74,12 +72,12 @@ def main(args=None):
 	else:
 		raise ValueError('Dataset type not understood (must be csv or coco), exiting.')
 
-	sampler = AspectRatioBasedSampler(dataset_train, batch_size=2, drop_last=False)
-	dataloader_train = DataLoader(dataset_train, num_workers=3, collate_fn=collater, batch_sampler=sampler)
+	sampler = AspectRatioBasedSampler(dataset_train, batch_size=3, drop_last=False)
+	dataloader_train = DataLoader(dataset_train, num_workers=2, collate_fn=collater, batch_sampler=sampler)
 
 	if dataset_val is not None:
 		sampler_val = AspectRatioBasedSampler(dataset_val, batch_size=1, drop_last=False)
-		dataloader_val = DataLoader(dataset_val, num_workers=3, collate_fn=collater, batch_sampler=sampler_val)
+		dataloader_val = DataLoader(dataset_val, num_workers=2, collate_fn=collater, batch_sampler=sampler_val)
 
 	# Create the model
 	if parser.depth == 18:
@@ -142,11 +140,10 @@ def main(args=None):
 
 				optimizer.step()
 
-				loss_hist.append(float(loss))
+				loss_hist.append(float(loss.item()))
+				epoch_loss.append(float(loss.item()))
 
-				epoch_loss.append(float(loss))
-
-				print('Epoch: {} | Iteration: {} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, float(classification_loss), float(regression_loss), np.mean(loss_hist)))
+				print('Epoch: {} | Iteration: {}/{} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, len(dataloader_train), float(classification_loss), float(regression_loss), np.mean(loss_hist)))
 				
 				del classification_loss
 				del regression_loss
@@ -173,7 +170,7 @@ def main(args=None):
 
 	retinanet.eval()
 
-	torch.save(retinanet, 'model_final.pt'.format(epoch_num))
+	torch.save(retinanet, "model_final.pt".format(epoch_num))
 
 if __name__ == '__main__':
  main()
