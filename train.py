@@ -28,6 +28,17 @@ import csv_eval
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
 
+class AverageMeter:
+	def __init__(self):
+		self.avg = 0
+		self.n = 0
+
+	def update(self, x):
+		s = (self.avg * self.n) + x
+		self.n += 1
+		self.avg = s / self.n
+
+
 def main(args=None):
 
 	parser     = argparse.ArgumentParser(description='Simple training script for training a RetinaNet network.')
@@ -106,7 +117,7 @@ def main(args=None):
 
 	scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, verbose=True)
 
-	loss_hist = collections.deque(maxlen=500)
+	loss_hist = AverageMeter()
 
 	retinanet.train()
 	retinanet.module.freeze_bn()
@@ -118,7 +129,7 @@ def main(args=None):
 		retinanet.train()
 		retinanet.module.freeze_bn()
 		
-		epoch_loss = []
+		epoch_loss = AverageMeter()
 		
 		for iter_num, data in enumerate(dataloader_train):
 			try:
@@ -140,10 +151,10 @@ def main(args=None):
 
 				optimizer.step()
 
-				loss_hist.append(float(loss.item()))
-				epoch_loss.append(float(loss.item()))
+				loss_hist.update(float(loss.item()))
+				epoch_loss.update(float(loss.item()))
 
-				print('Epoch: {} | Iteration: {}/{} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, len(dataloader_train), float(classification_loss), float(regression_loss), np.mean(loss_hist)))
+				print('Epoch: {} | Iteration: {}/{} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(epoch_num, iter_num, len(dataloader_train), float(classification_loss), float(regression_loss), loss_hist.avg))
 				
 				del classification_loss
 				del regression_loss
@@ -164,7 +175,7 @@ def main(args=None):
 			mAP = csv_eval.evaluate(dataset_val, retinanet)
 
 		
-		scheduler.step(np.mean(epoch_loss))	
+		scheduler.step(epoch_loss.avg)
 
 		torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
 

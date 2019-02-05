@@ -30,8 +30,8 @@ class FocalLoss(nn.Module):
         alpha = 0.25
         gamma = 2.0
         batch_size = classifications.shape[0]
-        classification_losses = []
-        regression_losses = []
+        classification_loss = torch.tensor(0).float()
+        regression_loss = torch.tensor(0).float()
 
         anchor = anchors[0, :, :]
 
@@ -49,8 +49,8 @@ class FocalLoss(nn.Module):
             bbox_annotation = bbox_annotation[bbox_annotation[:, 4] != -1]
 
             if bbox_annotation.shape[0] == 0:
-                regression_losses.append(torch.tensor(0).float().to(self.device))
-                classification_losses.append(torch.tensor(0).float().to(self.device))
+                regression_loss += (torch.tensor(0).float().to(self.device))
+                classification_loss += (torch.tensor(0).float().to(self.device))
 
                 continue
 
@@ -91,7 +91,7 @@ class FocalLoss(nn.Module):
 
             cls_loss = torch.where(torch.ne(targets, -1.0), cls_loss, torch.zeros(cls_loss.shape).to(self.device))
 
-            classification_losses.append(cls_loss.sum()/torch.clamp(num_positive_anchors.float(), min=1.0))
+            classification_loss += (cls_loss.sum() / torch.clamp(num_positive_anchors.float(), min=1.0))
 
             # compute the loss for regression
 
@@ -132,10 +132,10 @@ class FocalLoss(nn.Module):
                     0.5 * 9.0 * torch.pow(regression_diff, 2),
                     regression_diff - 0.5 / 9.0
                 )
-                regression_losses.append(regression_loss.mean())
+                regression_loss += regression_loss.mean()
             else:
-                regression_losses.append(torch.tensor(0).float().to(self.device))
+                regression_loss += torch.tensor(0).float().to(self.device)
 
-        return torch.stack(classification_losses).mean(dim=0, keepdim=True), torch.stack(regression_losses).mean(dim=0, keepdim=True)
+        return classification_loss.mean(dim=0, keepdim=True), regression_loss.mean(dim=0, keepdim=True)
 
     

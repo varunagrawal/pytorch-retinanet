@@ -241,7 +241,7 @@ class ResNet(nn.Module):
 
         if self.training:
             img_batch, annotations = inputs
-            annotations = annotations.cpu()
+
         else:
             img_batch = inputs
             
@@ -258,12 +258,11 @@ class ResNet(nn.Module):
         features = self.fpn([x2, x3, x4])
 
         regression = torch.cat([self.regressionModel(feature) for feature in features], dim=1).cpu()
-
         classification = torch.cat([self.classificationModel(feature) for feature in features], dim=1).cpu()
-
         anchors = self.anchors(img_batch).cpu()
 
         if self.training:
+            annotations = annotations.cpu()
             return self.focalLoss(classification, regression, anchors, annotations)
 
         else:
