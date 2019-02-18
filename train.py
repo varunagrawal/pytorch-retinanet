@@ -49,7 +49,7 @@ def main(args=None):
 		if parser.coco_path is None:
 			raise ValueError('Must provide --coco_path when training on COCO,')
 
-		dataset_train = CocoDataset(parser.coco_path, set_name='train2014', transform=transforms.Compose([Normalizer(), Augmenter(), Resizer()]))
+		dataset_train = CocoDataset(parser.coco_path, set_name='train2014', transform=transforms.Compose([Normalizer(), Augmenter(), Resizer(min_side=512, max_side=512)]))
 		dataset_val = CocoDataset(parser.coco_path, set_name='val2014', transform=transforms.Compose([Normalizer(), Resizer()]))
 
 	elif parser.dataset == 'csv':
@@ -72,7 +72,7 @@ def main(args=None):
 	else:
 		raise ValueError('Dataset type not understood (must be csv or coco), exiting.')
 
-	sampler = AspectRatioBasedSampler(dataset_train, batch_size=3, drop_last=False)
+	sampler = AspectRatioBasedSampler(dataset_train, batch_size=6, drop_last=False)
 	dataloader_train = DataLoader(dataset_train, num_workers=2, collate_fn=collater, batch_sampler=sampler)
 
 	if dataset_val is not None:
