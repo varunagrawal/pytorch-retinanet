@@ -22,7 +22,7 @@ def calc_iou(a, b):
     return IoU
 
 class FocalLoss(nn.Module):
-    def __init__(self, device="cpu"):
+    def __init__(self, device="cuda"):
         super().__init__()
         self.device = device
 
@@ -57,7 +57,6 @@ class FocalLoss(nn.Module):
             classification = torch.clamp(classification, 1e-4, 1.0 - 1e-4)
 
             IoU = calc_iou(anchors[0, :, :], bbox_annotation[:, :4]) # num_anchors x num_annotations
-
             IoU_max, IoU_argmax = torch.max(IoU, dim=1) # num_anchors x 1
 
             #import pdb
@@ -65,10 +64,8 @@ class FocalLoss(nn.Module):
 
             # compute the loss for classification
             targets = torch.ones(classification.shape) * -1
-            targets = targets.to(self.device)
 
             targets[torch.lt(IoU_max, 0.4), :] = 0
-
             positive_indices = torch.ge(IoU_max, 0.5)
 
             num_positive_anchors = positive_indices.sum()
@@ -77,6 +74,8 @@ class FocalLoss(nn.Module):
 
             targets[positive_indices, :] = 0
             targets[positive_indices, assigned_annotations[positive_indices, 4].long()] = 1
+
+            targets = targets.to(self.device)
 
             alpha_factor = torch.ones(targets.shape).to(self.device) * alpha
 
@@ -121,7 +120,6 @@ class FocalLoss(nn.Module):
                 targets = targets.t()
 
                 targets = targets / torch.Tensor([[0.1, 0.1, 0.2, 0.2]]).to(self.device)
-
 
                 negative_indices = 1 - positive_indices
 
