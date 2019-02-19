@@ -98,7 +98,7 @@ def main(args=None):
 	if use_gpu:
 		retinanet = retinanet.cuda()
 	
-	retinanet = torch.nn.DataParallel(retinanet).cuda()
+	# retinanet = torch.nn.DataParallel(retinanet).cuda()
 
 	retinanet.training = True
 
@@ -108,15 +108,12 @@ def main(args=None):
 
 	loss_hist = collections.deque(maxlen=500)
 
-	retinanet.train()
-	retinanet.module.freeze_bn()
-
 	print('Num training images: {}'.format(len(dataset_train)))
 
 	for epoch_num in range(parser.epochs):
 
 		retinanet.train()
-		retinanet.module.freeze_bn()
+		retinanet.freeze_bn()
 		
 		epoch_loss = []
 		
@@ -166,7 +163,7 @@ def main(args=None):
 		
 		scheduler.step(np.mean(epoch_loss))	
 
-		# torch.save(retinanet.module, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+		# torch.save(retinanet, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
 
 	retinanet.eval()
 

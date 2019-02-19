@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
@@ -81,7 +79,5 @@ def evaluate_coco(dataset, model, threshold=0.05):
         coco_eval.evaluate()
         coco_eval.accumulate()
         coco_eval.summarize()
-
-        model.train()
 
         return
