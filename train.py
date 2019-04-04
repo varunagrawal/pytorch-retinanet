@@ -40,6 +40,7 @@ def main(args=None):
 
 	parser.add_argument('--depth', help='Resnet depth, must be one of 18, 34, 50, 101, 152', type=int, default=50)
 	parser.add_argument('--epochs', help='Number of epochs', type=int, default=100)
+	parser.add_argument('--evaluate_every', default=20, type=int)
 
 	parser = parser.parse_args(args)
 
@@ -148,17 +149,19 @@ def main(args=None):
 				print(e)
 				continue
 
-		if parser.dataset == 'coco':
+		if ((epoch_num+1) % parser.evaluate_every == 0) or epoch_num+1 == parser.epochs:
 
-			print('Evaluating dataset')
+			if parser.dataset == 'coco':
 
-			coco_eval.evaluate_coco(dataset_val, retinanet)
+				print('Evaluating dataset')
 
-		elif parser.dataset == 'csv' and parser.csv_val is not None:
+				coco_eval.evaluate_coco(dataset_val, retinanet)
 
-			print('Evaluating dataset')
+			elif parser.dataset == 'csv' and parser.csv_val is not None:
 
-			mAP = csv_eval.evaluate(dataset_val, retinanet)
+				print('Evaluating dataset')
+
+				mAP = csv_eval.evaluate(dataset_val, retinanet)
 
 		
 		scheduler.step(np.mean(epoch_loss))	
