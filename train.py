@@ -50,8 +50,10 @@ def main(args=None):
 		if parser.coco_path is None:
 			raise ValueError('Must provide --coco_path when training on COCO,')
 
-		dataset_train = CocoDataset(parser.coco_path, set_name='train2014', transform=transforms.Compose([Normalizer(), Augmenter(), Resizer(min_side=512, max_side=512)]))
-		dataset_val = CocoDataset(parser.coco_path, set_name='val2014', transform=transforms.Compose([Normalizer(), Resizer()]))
+		dataset_train = CocoDataset(parser.coco_path, ann_file='instances_train2014.cars.json', set_name="train2014",
+                                    transform=transforms.Compose([Normalizer(), Augmenter(), Resizer(min_side=512, max_side=512)]))
+		dataset_val = CocoDataset(parser.coco_path, ann_file='instances_val2014.cars.json', set_name="val2014",
+                                  transform=transforms.Compose([Normalizer(), Resizer()]))
 
 	elif parser.dataset == 'csv':
 
