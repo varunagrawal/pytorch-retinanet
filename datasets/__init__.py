@@ -47,16 +47,16 @@ def collater(data):
 
         if max_num_annots > 0:
             for idx, annot in enumerate(annots):
-                #print(annot.shape)
+                # print(annot.shape)
                 if annot.shape[0] > 0:
                     annot_padded[idx, :annot.shape[0], :] = annot
     else:
         annot_padded = torch.ones((len(annots), 1, 5)) * -1
 
-
     padded_imgs = padded_imgs.permute(0, 3, 1, 2)
 
     return {'img': padded_imgs, 'annot': annot_padded, 'scale': scales}
+
 
 class Resizer(object):
     """Convert ndarrays in sample to Tensors."""
@@ -87,10 +87,11 @@ class Resizer(object):
                                          mode='constant', anti_aliasing=True)
         rows, cols, cns = image.shape
 
-        pad_w = 32 - rows%32
-        pad_h = 32 - cols%32
+        pad_w = 32 - rows % 32
+        pad_h = 32 - cols % 32
 
-        new_image = np.zeros((rows + pad_w, cols + pad_h, cns)).astype(np.float32)
+        new_image = np.zeros(
+            (rows + pad_w, cols + pad_h, cns)).astype(np.float32)
         new_image[:rows, :cols, :] = image.astype(np.float32)
 
         annots[:, :4] *= scale
@@ -134,7 +135,8 @@ class Normalizer(object):
 
         image, annots = sample['img'], sample['annot']
 
-        return {'img':((image.astype(np.float32)-self.mean)/self.std), 'annot': annots}
+        return {'img': ((image.astype(np.float32)-self.mean)/self.std), 'annot': annots}
+
 
 class UnNormalizer(object):
     def __init__(self, mean=None, std=None):
@@ -185,4 +187,4 @@ class AspectRatioBasedSampler(Sampler):
 
         # divide into groups, one group = one batch
         return [[order[x % len(order)] for x in range(i, i + self.batch_size)]
-                 for i in range(0, len(order), self.batch_size)]
+                for i in range(0, len(order), self.batch_size)]
