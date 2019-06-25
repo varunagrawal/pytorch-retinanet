@@ -7,7 +7,7 @@ from utils import BasicBlock, Bottleneck, BBoxTransform, ClipBoxes
 from anchors import Anchors
 import losses
 # from lib.nms.pth_nms import pth_nms
-from torchvision.layers import nms
+from torchvision.ops import nms
 
     
 model_urls = {
