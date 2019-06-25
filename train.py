@@ -19,7 +19,7 @@ import torchvision
 import model
 from anchors import Anchors
 import losses
-from dataloader import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
+from datasets import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
 from torch.utils.data import Dataset, DataLoader
 
 import coco_eval
@@ -30,7 +30,7 @@ print('CUDA available: {}'.format(torch.cuda.is_available()))
 
 def main(args=None):
 
-	parser     = argparse.ArgumentParser(description='Simple training script for training a RetinaNet network.')
+	parser = argparse.ArgumentParser(description='Simple training script for training a RetinaNet network.')
 
 	parser.add_argument('--dataset', help='Dataset type, must be one of csv or coco.')
 	parser.add_argument('--coco_path', help='Path to COCO directory')
@@ -50,7 +50,7 @@ def main(args=None):
 		if parser.coco_path is None:
 			raise ValueError('Must provide --coco_path when training on COCO,')
 
-		dataset_train = CocoDataset(parser.coco_path, ann_file='instances_train2014.cars.json', set_name="train2014",
+		dataset_train = CocoDataset(parser.coco_path, ann_file='instances_train2014.json', set_name="train2014",
                                     transform=transforms.Compose([Normalizer(), Augmenter(), Resizer(min_side=512, max_side=512)]))
 		dataset_val = CocoDataset(parser.coco_path, ann_file='instances_val2014.cars.json', set_name="val2014",
                                   transform=transforms.Compose([Normalizer(), Resizer()]))
