@@ -71,13 +71,13 @@ def main(args=None):
     elif parser.dataset == 'ycb':
 
         dataset_train = YCBDataset(parser.path,
-                                   "train.txt",
+                                   "image_sets/train.txt",
                                    transform=transforms.Compose([Normalizer(),
                                                                  Augmenter(),
                                                                  Resizer(min_side=512,
                                                                          max_side=512)]),
                                    train=True)
-        dataset_val = YCBDataset(parser.path, "val.txt",
+        dataset_val = YCBDataset(parser.path, "image_sets/val.txt",
                                  transform=transforms.Compose([Normalizer(), Resizer()]),
                                  train=False)
 

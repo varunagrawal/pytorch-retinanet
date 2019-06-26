@@ -44,7 +44,7 @@ class YCBDataset(Dataset):
 
     @staticmethod
     def get_classes(root):
-        classes_file = osp.join(root, 'classes.txt')
+        classes_file = osp.join(root, 'image_sets', 'classes.txt')
         classes = {}
         with open(classes_file, 'r') as file:
             lines = file.readlines()
