@@ -19,7 +19,7 @@ import torchvision
 import model
 from anchors import Anchors
 import losses
-from datasets import CocoDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
+from datasets import CocoDataset, YCBDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
 from torch.utils.data import Dataset, DataLoader
 
 import coco_eval
@@ -34,8 +34,8 @@ def main(args=None):
         description='Simple training script for training a RetinaNet network.')
 
     parser.add_argument(
-        '--dataset', help='Dataset type, must be one of csv or coco.')
-    parser.add_argument('--coco_path', help='Path to COCO directory')
+        '--dataset', help='Dataset type, must be one of csv or coco or ycb.')
+    parser.add_argument('--path', help='Path to dataset directory')
     parser.add_argument(
         '--csv_train', help='Path to file containing training annotations (see readme)')
     parser.add_argument(
@@ -54,13 +54,32 @@ def main(args=None):
     # Create the data loaders
     if parser.dataset == 'coco':
 
-        if parser.coco_path is None:
-            raise ValueError('Must provide --coco_path when training on COCO,')
+        if parser.path is None:
+            raise ValueError(
+                'Must provide --path when training on non-CSV datasets')
 
-        dataset_train = CocoDataset(parser.coco_path, ann_file='instances_train2014.json', set_name="train2014",
-                                    transform=transforms.Compose([Normalizer(), Augmenter(), Resizer(min_side=512, max_side=512)]))
-        dataset_val = CocoDataset(parser.coco_path, ann_file='instances_val2014.cars.json', set_name="val2014",
+        dataset_train = CocoDataset(parser.path,
+                                    ann_file='instances_train2014.json',
+                                    set_name="train2014",
+                                    transform=transforms.Compose([Normalizer(), Augmenter(),
+                                                                  Resizer(min_side=512,
+                                                                          max_side=512)]))
+        dataset_val = CocoDataset(parser.path, ann_file='instances_val2014.cars.json',
+                                  set_name="val2014",
                                   transform=transforms.Compose([Normalizer(), Resizer()]))
+
+    elif parser.dataset == 'ycb':
+
+        dataset_train = YCBDataset(parser.path,
+                                   "train.txt",
+                                   transform=transforms.Compose([Normalizer(),
+                                                                 Augmenter(),
+                                                                 Resizer(min_side=512,
+                                                                         max_side=512)]),
+                                   train=True)
+        dataset_val = YCBDataset(parser.path, "val.txt",
+                                 transform=transforms.Compose([Normalizer(), Resizer()]),
+                                 train=False)
 
     elif parser.dataset == 'csv':
 

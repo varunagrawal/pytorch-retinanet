@@ -42,7 +42,7 @@ pip install requests
 The network can be trained using the `train.py` script. Currently, two dataloaders are available: COCO and CSV. For training on coco, use
 
 ```
-python train.py --dataset coco --coco_path ../coco --depth 50
+python train.py --dataset coco --path ../coco --depth 50
 ```
 
 For training using a custom dataset, with annotations in CSV format (see below), use

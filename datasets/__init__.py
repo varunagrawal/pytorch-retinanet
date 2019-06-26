@@ -17,6 +17,7 @@ from torch.utils.data.sampler import Sampler
 from torchvision import transforms, utils
 
 from .coco import CocoDataset
+from .ycb import YCBDataset
 from .csv import CSVDataset
 
 
@@ -132,7 +133,6 @@ class Normalizer(object):
         self.std = np.array([[[0.229, 0.224, 0.225]]])
 
     def __call__(self, sample):
-
         image, annots = sample['img'], sample['annot']
 
         return {'img': ((image.astype(np.float32)-self.mean)/self.std), 'annot': annots}

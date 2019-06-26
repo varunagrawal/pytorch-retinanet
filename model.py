@@ -202,11 +202,13 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2)
 
         if block == BasicBlock:
-            fpn_sizes = [self.layer2[layers[1]-1].conv2.out_channels, self.layer3[layers[2] -
-                                                                                  1].conv2.out_channels, self.layer4[layers[3]-1].conv2.out_channels]
+            fpn_sizes = [self.layer2[layers[1]-1].conv2.out_channels,
+                         self.layer3[layers[2] - 1].conv2.out_channels,
+                         self.layer4[layers[3]-1].conv2.out_channels]
         elif block == Bottleneck:
-            fpn_sizes = [self.layer2[layers[1]-1].conv3.out_channels, self.layer3[layers[2] -
-                                                                                  1].conv3.out_channels, self.layer4[layers[3]-1].conv3.out_channels]
+            fpn_sizes = [self.layer2[layers[1]-1].conv3.out_channels,
+                         self.layer3[layers[2] - 1].conv3.out_channels,
+                         self.layer4[layers[3]-1].conv3.out_channels]
 
         self.fpn = PyramidFeatures(fpn_sizes[0], fpn_sizes[1], fpn_sizes[2])
 
@@ -312,12 +314,11 @@ class ResNet(nn.Module):
             transformed_anchors = transformed_anchors[:, scores_over_thresh, :]
             scores = scores[:, scores_over_thresh, :]
 
-            anchors_nms_idx = nms(
-                transformed_anchors[0, :, :], scores[0, :, :].squeeze(1), 0.5)
+            anchors_nms_idx = nms(transformed_anchors[0, :, :],
+                                  scores[0, :, :].squeeze(1), 0.5)
             # anchors_nms_idx = nms(torch.cat([transformed_anchors, scores], dim=2)[0, :, :], 0.5)
 
-            nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(
-                dim=1)
+            nms_scores, nms_class = classification[0, anchors_nms_idx, :].max(dim=1)
 
             return [nms_scores, nms_class, transformed_anchors[0, anchors_nms_idx, :]]
 

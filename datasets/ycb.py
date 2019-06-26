@@ -1,113 +1,108 @@
-import os
+import os.path as osp
 
 import numpy as np
-import scipy.io as sio
 from PIL import Image
 from torch.utils.data import Dataset
 from torchvision import transforms
 
+from bbox import BBox2D
 
-class ImageLoaderAll(Dataset):
 
-    def __init__(self, root, train_file_path, transform=None, flip=False, affine=False, train=False,
-                 batch_size=64, num_workers=4):
+class YCBDataset(Dataset):
+
+    def __init__(self, root, data_file_path, transform=None, train=False):
 
         super().__init__()
 
         self.root = root
-        self.train_list = get_data_list(train_file_path)
-        self.num_samples = len(self.train_list)
+        self.data_list = self.get_data_list(osp.join(root, data_file_path))
+        self.num_samples = len(self.data_list)
         self.transform = transform
-        self.flip = flip
-        self.affine = affine
         self.train = train
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.data_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                     "data", "LOV", "data")
+        self.data_dir = osp.join(root, "data")
+        self.classes = classes = self.get_classes(self.root)
 
-    def get_data(self, dir_path, transform, flip, affine, root, random=None, key=False):
-        meta_path = os.path.join(dir_path + "-meta.mat")
-        bbox_path = os.path.join(dir_path + "-box.txt")
-        img_path = os.path.join(dir_path + "-color.png")
-        label_path = os.path.join(dir_path + '-label.png')
-        depth_path = os.path.join(dir_path + '-depth.png')
+    @staticmethod
+    def get_data_list(root):
+        data_list = []
 
-        classes = get_classes(root)
-        meta_data = sio.loadmat(meta_path)
+        with open(root, 'r') as file:
+            lines = file.readlines()
+
+        for line in lines:
+            lis = line.split("\n")[0]
+            data_list.append(lis)
+
+        return data_list
+
+    def image_aspect_ratio(self, image_index):
+        file_indices = self.data_list[image_index]
+        img, _, _, _ = self.get_data(
+            osp.join(self.data_dir, file_indices))
+
+        return float(img.width) / float(img.height)
+
+    @staticmethod
+    def get_classes(root):
+        classes_file = osp.join(root, 'classes.txt')
+        classes = {}
+        with open(classes_file, 'r') as file:
+            lines = file.readlines()
+
+        for i, line in enumerate(lines):
+            classes[str(line).split("\n")[0]] = i + 1
+
+        return classes
+
+    def get_data(self, dir_path):
+        img_path = osp.join(dir_path + "-color.png")
+        bbox_path = osp.join(dir_path + "-box.txt")
+
         bbox = []
-        poses = []
         cls_indices = []
 
         img = Image.open(img_path)
         # img = img.resize((int(img.width/10), int(img.height/10)), Image.ANTIALIAS)
-        label = np.array(Image.open(label_path))
-        depth = np.array(Image.open(depth_path)) / meta_data["factor_depth"]
-
-        # label single channel to one hot
-        labels = np.zeros((22, label.shape[0], label.shape[1]), dtype=float)
-        for j in range(0, 22):
-            labels[j, :, :] = ((label == (j)) * 1)
 
         with open(bbox_path, 'r') as file:
             lines = file.readlines()
 
-        # Randomly selects an object
-        if random is None:
-            random = np.random.choice(len(lines), len(lines), replace=False)
+        random = np.random.choice(len(lines), len(lines), replace=False)
 
         for i in random:
             lis = str(lines[i]).split("\n")[0].split(" ")
-            if float(lis[1]) <= 640.0 and float(lis[3]) <= 640 \
-                and float(lis[2]) <= 480 and float(lis[4]) <= 480 \
-                    and (float(lis[3]) > float(lis[1])) and (float(lis[4]) > float(lis[2])) \
-                        and (float(lis[3]) - float(lis[1])) > 20 \
-                            and (float(lis[4]) - float(lis[2])) > 20:
-                bbox.append([float(lis[1]), float(lis[2]),
-                             float(lis[3]), float(lis[4])])
-                cls_indices.append(classes[lis[0]])
+            box = BBox2D(list(map(float, lis[1:])), mode=1)
+            if box.x1 <= 640.0 and box.x2 <= 640 and box.y1 <= 480 and box.y2 <= 480 \
+                    and (box.x2 > box.x1) and (box.y2 > box.y1) \
+                and box.w > 20 and box.h > 20:
+                bbox.append(box.tolist(1))
+                cls_indices.append(self.classes[lis[0]])
 
-        for i in cls_indices:
-            ind = list(meta_data['cls_indexes']).index(i)
-            poses.append(meta_data['poses'][:, :, ind])
+        return img, cls_indices, bbox, random
 
-        if transform:
-            img = transform(img)
-
-        return img, labels, depth, poses, cls_indices, bbox, 0, meta_data['intrinsic_matrix'],\
-            meta_data['rotation_translation_matrix'], 0, random
+    def num_classes(self):
+        return len(self.classes) + 1  # extra class for background
 
     def __len__(self):
         return self.num_samples
 
     def __getitem__(self, index):
+        # data_list has key from 0001 to 0090, num videos
+        file_indices = self.data_list[index]
 
-        # train_list has key from 0001 to 0090, num videos
-        data = {"image": [], "poses": [], "cls_indices": [], "bbox": [],
-                "file_indices": [], "K": [], "RT": [], "label": [], "depth": []}
+        img, cls_indices, bboxes, _ = self.get_data(
+            osp.join(self.data_dir, file_indices))
 
-        file_indices = self.train_list[index]
-        img, label, depth, poses, cls_indices, bbox, _, K, RT, _, _ = self.get_data(
-            os.path.join(self.data_dir, file_indices),
-            self.transform, self.flip, self.affine, self.root)
+        annot = np.zeros((len(bboxes), 5))
+        annot[:, :4] = np.array(bboxes)
+        annot[:, 4] = cls_indices
 
-        data['image'] = img
-        data['label'] = label
-        data['depth'] = depth
-        data['poses'] = poses
-        data['cls_indices'] = cls_indices
-        data['bbox'] = bbox
-        data['file_indices'] = file_indices
-        data['K'] = K
-        data['RT'] = RT
+        sample = {'img': np.array(img), 'annot': annot}
 
-        return data
+        if self.transform:
+            sample = self.transform(sample)
 
-
-def gaussian_kernel(size_x, size_y, ux=0, uy=0, a=0, b=0):
-    x, y = np.mgrid[0:size_x, 0:size_y]
-    g = np.exp(-(((x-ux)/a)**2 + ((y-uy)/b)**2))
-    return g
+        return sample
 
 
 def get_crops(img, bbox):
@@ -121,93 +116,12 @@ def get_crops(img, bbox):
     return im
 
 
-def get_matrix(deg, nx, ny):
-    a = np.math.cos(deg * np.pi / 180)
-    b = np.math.sin(deg * np.pi / 180)
-    c = nx + nx*a - ny*b
-    d = nx + nx*-b - ny*a
-    mat = [[a, b, c], [-b, a, d], [0, 0, 1]]
-    return mat, a, b, c, d
-
-
-def get_data_list(root):
-    train_list = []
-
-    with open(root, 'r') as file:
-        lines = file.readlines()
-
-    for i in range(0, len(lines)):
-        lis = lines[i].split("\n")[0]
-        train_list.append(lis)
-
-    return train_list
-
-
-def get_classes(root):
-    classes_file = os.path.join(root, 'classes.txt')
-    classes = {}
-    with open(classes_file, 'r') as file:
-        lines = file.readlines()
-
-    for i in range(0, len(lines)):
-        classes[str(lines[i]).split("\n")[0]] = i + 1
-
-    return classes
-
-
-def load_object_points_dense(root):
-    classes = get_classes(root)
-    points = [[] for _ in range(0, len(classes))]
-    num = np.inf
-
-    for i in range(0, len(classes)):
-        point_file = os.path.join(root, 'models',
-                                  list(classes.keys())[
-                                      list(classes.values()).index(i+1)],
-                                  'points1.xyz')
-        assert os.path.exists(
-            point_file), 'Path does not exist: {}'.format(point_file)
-        points[i] = np.loadtxt(point_file)
-        if points[i].shape[0] < num:
-            num = points[i].shape[0]
-
-    new_num = 3000
-    points_all = np.zeros((len(classes), new_num, 3), dtype=np.float32)
-    for i in range(0, len(classes)):
-        indices = np.random.randint(0, points[i].shape[0], new_num)
-        points_all[i, :, :] = points[i][indices, :]
-
-    return points, points_all
-
-
-def load_object_points(root):
-    classes = get_classes(root)
-    points = [[] for _ in range(0, len(classes))]
-    num = np.inf
-
-    for i in range(0, len(classes)):
-        point_file = os.path.join(root, 'models',
-                                  list(classes.keys())[
-                                      list(classes.values()).index(i + 1)],
-                                  'points.xyz')
-        assert os.path.exists(
-            point_file), 'Path does not exist: {}'.format(point_file)
-        points[i] = np.loadtxt(point_file)
-        if points[i].shape[0] < num:
-            num = points[i].shape[0]
-
-    points_all = np.zeros((len(classes), num, 3), dtype=np.float32)
-    for i in range(0, len(classes)):
-        points_all[i, :, :] = points[i][:num, :]
-
-    return points, points_all
-
-
 def main():
-    file = "/home/varun/projects/VideoPose/VideoPose/data/LOV/train_video.txt"
-    shuffled = open("/home/varun/projects/VideoPose/VideoPose/data/LOV/train_video_shuffled.txt",
-                    'w')
-    train_list = get_data_list(file)
+    root = "/home/varun/projects/VideoPose/VideoPose/data/LOV/"
+    file = "train_video.txt"
+
+    dataset = YCBDataset(root, file, None, train=True)
+    dataset[0]
 
 
 if __name__ == '__main__':
