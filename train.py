@@ -19,7 +19,8 @@ import torchvision
 import model
 from anchors import Anchors
 import losses
-from datasets import CocoDataset, YCBDataset, CSVDataset, collater, Resizer, AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
+from datasets import CocoDataset, YCBDataset, CSVDataset, collater, Resizer, \
+    AspectRatioBasedSampler, Augmenter, UnNormalizer, Normalizer
 from torch.utils.data import Dataset, DataLoader
 
 import coco_eval
@@ -78,7 +79,8 @@ def main(args=None):
                                                                          max_side=512)]),
                                    train=True)
         dataset_val = YCBDataset(parser.path, "image_sets/val.txt",
-                                 transform=transforms.Compose([Normalizer(), Resizer()]),
+                                 transform=transforms.Compose(
+                                     [Normalizer(), Resizer()]),
                                  train=False)
 
     elif parser.dataset == 'csv':
@@ -91,7 +93,9 @@ def main(args=None):
                 'Must provide --csv_classes when training on COCO,')
 
         dataset_train = CSVDataset(train_file=parser.csv_train, class_list=parser.csv_classes,
-                                   transform=transforms.Compose([Normalizer(), Augmenter(), Resizer()]))
+                                   transform=transforms.Compose([Normalizer(),
+                                                                 Augmenter(),
+                                                                 Resizer()]))
 
         if parser.csv_val is None:
             dataset_val = None
@@ -105,15 +109,15 @@ def main(args=None):
             'Dataset type not understood (must be csv or coco), exiting.')
 
     sampler = AspectRatioBasedSampler(
-        dataset_train, batch_size=6, drop_last=False)
-    dataloader_train = DataLoader(
-        dataset_train, num_workers=2, collate_fn=collater, batch_sampler=sampler)
+        dataset_train, batch_size=12, drop_last=False)
+    dataloader_train = DataLoader(dataset_train, num_workers=8,
+                                  collate_fn=collater, batch_sampler=sampler)
 
     if dataset_val is not None:
         sampler_val = AspectRatioBasedSampler(
             dataset_val, batch_size=1, drop_last=False)
-        dataloader_val = DataLoader(
-            dataset_val, num_workers=2, collate_fn=collater, batch_sampler=sampler_val)
+        dataloader_val = DataLoader(dataset_val, num_workers=4,
+                                    collate_fn=collater, batch_sampler=sampler_val)
 
     # Create the model
     if parser.depth == 18:
@@ -184,8 +188,15 @@ def main(args=None):
                 loss_hist.append(float(loss.item()))
                 epoch_loss.append(float(loss.item()))
 
-                print('Epoch: {} | Iteration: {}/{} | Classification loss: {:1.5f} | Regression loss: {:1.5f} | Running loss: {:1.5f}'.format(
-                    epoch_num, iter_num, len(dataloader_train), float(classification_loss), float(regression_loss), np.mean(loss_hist)))
+                print('Epoch: {} | Iteration: {}/{} | "\
+                    "Classification loss: {:1.5f} | "\
+                    "Regression loss: {:1.5f} | "\
+                        "Running loss: {:1.5f}'.format(epoch_num,
+                                                       iter_num,
+                                                       len(dataloader_train),
+                                                       float(
+                                                           classification_loss),
+                                                       float(regression_loss), np.mean(loss_hist)))
 
                 del classification_loss
                 del regression_loss
@@ -213,7 +224,7 @@ def main(args=None):
 
     retinanet.eval()
 
-    torch.save(retinanet, "retinanet_model_final.pt".format(epoch_num))
+    torch.save(retinanet, "retinanet_model_final.pt")
 
 
 if __name__ == '__main__':
