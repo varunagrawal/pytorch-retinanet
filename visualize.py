@@ -29,10 +29,10 @@ def main(args=None):
     parser.add_argument(
         '--dataset', help='Dataset type, must be one of csv or coco.')
     parser.add_argument('--coco_path', help='Path to COCO directory')
-    parser.add_argument(
-        '--csv_classes', help='Path to file containing class list (see readme)')
-    parser.add_argument(
-        '--csv_val', help='Path to file containing validation annotations (optional, see readme)')
+    parser.add_argument('--csv_classes',
+                        help='Path to file containing class list (see readme)')
+    parser.add_argument('--csv_val',
+    help='Path to file containing validation annotations (optional, see readme)')
 
     parser.add_argument('--model', help='Path to model (.pt) file.')
 
