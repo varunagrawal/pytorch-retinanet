@@ -24,7 +24,7 @@ from datasets import CocoDataset, YCBDataset, CSVDataset, collater, Resizer, \
 from torch.utils.data import Dataset, DataLoader
 
 import coco_eval
-import csv_eval
+import eval
 
 print('CUDA available: {}'.format(torch.cuda.is_available()))
 
@@ -215,8 +215,8 @@ def main(args=None):
             elif parser.dataset == 'csv' and parser.csv_val is not None:
 
                 print('Evaluating dataset')
-
-                mAP = csv_eval.evaluate(dataset_val, retinanet)
+                mAP = eval.evaluate(dataset_val, retinanet)
+                print("Val set mAP: ", np.asarray(mAP.keys()).mean())
 
         scheduler.step(np.mean(epoch_loss))
 

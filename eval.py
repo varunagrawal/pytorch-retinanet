@@ -116,7 +116,8 @@ def _get_detections(dataset, retinanet, score_threshold=0.05, max_detections=100
 
                 # copy detections to all_detections
                 for label in range(dataset.num_classes()):
-                    all_detections[index][label] = image_detections[image_detections[:, -1] == label, :-1]
+                    all_detections[index][label] = \
+                        image_detections[image_detections[:, -1] == label, :-1]
             else:
                 # copy detections to all_detections
                 for label in range(dataset.num_classes()):
@@ -153,14 +154,12 @@ def _get_annotations(generator):
     return all_annotations
 
 
-def evaluate(
-    generator,
-    retinanet,
-    iou_threshold=0.5,
-    score_threshold=0.05,
-    max_detections=100,
-    save_path=None
-):
+def evaluate(generator,
+             retinanet,
+             iou_threshold=0.5,
+             score_threshold=0.05,
+             max_detections=100,
+             save_path=None):
     """ Evaluate a given dataset using a given retinanet.
     # Arguments
         generator       : The generator that represents the dataset to evaluate.
@@ -175,8 +174,10 @@ def evaluate(
 
     # gather all detections and annotations
 
-    all_detections = _get_detections(
-        generator, retinanet, score_threshold=score_threshold, max_detections=max_detections, save_path=save_path)
+    all_detections = _get_detections(generator, retinanet,
+                                     score_threshold=score_threshold,
+                                     max_detections=max_detections,
+                                     save_path=save_path)
     all_annotations = _get_annotations(generator)
 
     average_precisions = {}
@@ -238,7 +239,7 @@ def evaluate(
         average_precision = _compute_ap(recall, precision)
         average_precisions[label] = average_precision, num_annotations
 
-    print('\nmAP:')
+    print('\nAP:')
     for label in range(generator.num_classes()):
         label_name = generator.label_to_name(label)
         print('{}: {}'.format(label_name, average_precisions[label][0]))
