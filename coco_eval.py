@@ -82,6 +82,6 @@ def evaluate_coco(dataset, model, threshold=0.05):
         coco_eval.params.imgIds = image_ids
         coco_eval.evaluate()
         coco_eval.accumulate()
-        coco_eval.summarize()
+        mean_ap = coco_eval.summarize()
 
-        return
+        return mean_ap
