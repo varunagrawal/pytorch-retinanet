@@ -150,12 +150,15 @@ def main(args=None):
 
     optimizer = optim.Adam(retinanet.parameters(), lr=1e-5)
 
-    scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=3, verbose=True)
+    scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer,
+                                                     patience=3,
+                                                     verbose=True)
 
     loss_hist = collections.deque(maxlen=500)
 
     print('Num training images: {}'.format(len(dataset_train)))
+
+    best_mean_avg_prec = 0.0
 
     for epoch_num in range(parser.epochs):
 
@@ -209,8 +212,7 @@ def main(args=None):
             if parser.dataset == 'coco':
 
                 print('Evaluating dataset')
-
-                coco_eval.evaluate_coco(dataset_val, retinanet)
+                mAP = coco_eval.evaluate_coco(dataset_val, retinanet)
 
             elif parser.dataset == 'csv' and parser.csv_val is not None:
 
@@ -218,9 +220,12 @@ def main(args=None):
                 mAP = eval.evaluate(dataset_val, retinanet)
                 print("Val set mAP: ", np.asarray(mAP.keys()).mean())
 
-        scheduler.step(np.mean(epoch_loss))
+            if mAP > best_mean_avg_prec:
+                best_mean_avg_prec = mAP
+                torch.save(retinanet, '{}_retinanet_best_mean_ap_{}.pt'.format(parser.dataset,
+                                                                               epoch_num))
 
-        # torch.save(retinanet, '{}_retinanet_{}.pt'.format(parser.dataset, epoch_num))
+        scheduler.step(np.mean(epoch_loss))
 
     retinanet.eval()
 
