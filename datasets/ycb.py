@@ -22,6 +22,10 @@ class YCBDataset(Dataset):
         self.data_dir = osp.join(root, "data")
         self.classes = self.get_classes(self.root)
 
+        self.labels = {}
+        for key, value in self.classes.items():
+            self.labels[value] = key
+
     @staticmethod
     def get_data_list(root):
         data_list = []
@@ -34,6 +38,9 @@ class YCBDataset(Dataset):
             data_list.append(lis)
 
         return data_list
+
+    def label_to_name(self, label):
+        return self.labels[label]
 
     def image_aspect_ratio(self, image_index):
         img = self.load_image(image_index)
