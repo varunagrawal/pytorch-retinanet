@@ -20,7 +20,7 @@ class YCBDataset(Dataset):
         self.transform = transform
         self.train = train
         self.data_dir = osp.join(root, "data")
-        self.classes = classes = self.get_classes(self.root)
+        self.classes = self.get_classes(self.root)
 
     @staticmethod
     def get_data_list(root):
@@ -36,11 +36,8 @@ class YCBDataset(Dataset):
         return data_list
 
     def image_aspect_ratio(self, image_index):
-        file_indices = self.data_list[image_index]
-        img, _, _, _ = self.get_data(
-            osp.join(self.data_dir, file_indices))
-
-        return float(img.width) / float(img.height)
+        img = self.load_image(image_index)
+        return float(img.shape[1]) / float(img.shape[0])
 
     @staticmethod
     def get_classes(root):
@@ -54,15 +51,29 @@ class YCBDataset(Dataset):
 
         return classes
 
-    def get_data(self, dir_path):
-        img_path = osp.join(dir_path + "-color.png")
-        bbox_path = osp.join(dir_path + "-box.txt")
+    def num_classes(self):
+        return len(self.classes) + 1  # extra class for background
 
-        bbox = []
-        cls_indices = []
+    def load_image(self, index):
+        # data_list has key from 0001 to 0090, num videos
+        file_indices = self.data_list[index]
+        dir_path = osp.join(self.data_dir, file_indices)
+        img_path = osp.join(dir_path + "-color.png")
 
         img = Image.open(img_path)
         # img = img.resize((int(img.width/10), int(img.height/10)), Image.ANTIALIAS)
+
+        return np.asfarray(img) / 255.0
+
+    def load_annotations(self, index):
+        # data_list has key from 0001 to 0090, num videos
+        file_indices = self.data_list[index]
+        dir_path = osp.join(self.data_dir, file_indices)
+
+        bbox_path = osp.join(dir_path + "-box.txt")
+
+        bboxes = []
+        cls_indices = []
 
         with open(bbox_path, 'r') as file:
             lines = file.readlines()
@@ -75,27 +86,21 @@ class YCBDataset(Dataset):
             if box.x1 <= 640.0 and box.x2 <= 640 and box.y1 <= 480 and box.y2 <= 480 \
                     and (box.x2 > box.x1) and (box.y2 > box.y1) \
                 and box.w > 20 and box.h > 20:
-                bbox.append(box.tolist(1))
+                bboxes.append(box.tolist(1))
                 cls_indices.append(self.classes[lis[0]])
 
-        return img, cls_indices, bbox, random
+        annot = np.zeros((len(bboxes), 5))
+        annot[:, :4] = np.array(bboxes)
+        annot[:, 4] = cls_indices
 
-    def num_classes(self):
-        return len(self.classes) + 1  # extra class for background
+        return annot
 
     def __len__(self):
         return self.num_samples
 
     def __getitem__(self, index):
-        # data_list has key from 0001 to 0090, num videos
-        file_indices = self.data_list[index]
-
-        img, cls_indices, bboxes, _ = self.get_data(
-            osp.join(self.data_dir, file_indices))
-
-        annot = np.zeros((len(bboxes), 5))
-        annot[:, :4] = np.array(bboxes)
-        annot[:, 4] = cls_indices
+        img = self.load_image(index)
+        annot = self.load_annotations(index)
 
         sample = {'img': np.array(img), 'annot': annot}
 
