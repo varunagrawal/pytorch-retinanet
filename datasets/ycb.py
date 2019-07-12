@@ -40,7 +40,7 @@ class YCBDataset(Dataset):
         return data_list
 
     def label_to_name(self, label):
-        return self.labels[label]
+        return self.labels[label+1]
 
     def image_aspect_ratio(self, image_index):
         img = self.load_image(image_index)
