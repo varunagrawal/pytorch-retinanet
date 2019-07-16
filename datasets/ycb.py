@@ -40,7 +40,7 @@ class YCBDataset(Dataset):
         return data_list
 
     def label_to_name(self, label):
-        return self.labels[label+1]
+        return self.labels[label]
 
     def image_aspect_ratio(self, image_index):
         img = self.load_image(image_index)
@@ -54,7 +54,7 @@ class YCBDataset(Dataset):
             lines = file.readlines()
 
         for i, line in enumerate(lines):
-            classes[str(line).split("\n")[0]] = i + 1
+            classes[str(line).split("\n")[0]] = i
 
         return classes
 
