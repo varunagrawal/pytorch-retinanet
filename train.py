@@ -34,18 +34,21 @@ def main(args=None):
     parser = argparse.ArgumentParser(
         description="Simple training script for training a RetinaNet network.")
 
-    parser.add_argument(
-        "--dataset", help="Dataset type, must be one of csv or coco or ycb.")
-    parser.add_argument("--path", help="Path to dataset directory")
-    parser.add_argument(
-        "--csv_train", help="Path to file containing training annotations (see readme)")
-    parser.add_argument(
-        "--csv_classes", help="Path to file containing class list (see readme)")
-    parser.add_argument(
-        "--csv_val", help="Path to file containing validation annotations (optional, see readme)")
+    parser.add_argument("--dataset",
+                        help="Dataset type, must be one of csv or coco or ycb.")
+    parser.add_argument("--path",
+                        help="Path to dataset directory")
+    parser.add_argument("--csv_train",
+                        help="Path to file containing training annotations (see readme)")
+    parser.add_argument("--csv_classes",
+                        help="Path to file containing class list (see readme)")
+    parser.add_argument("--csv_val",
+                        help="Path to file containing validation annotations "
+                        "(optional, see readme)")
 
-    parser.add_argument(
-        "--depth", help="Resnet depth, must be one of 18, 34, 50, 101, 152", type=int, default=50)
+    parser.add_argument("--depth",
+                        help="Resnet depth, must be one of 18, 34, 50, 101, 152",
+                        type=int, default=50)
     parser.add_argument("--epochs", help="Number of epochs",
                         type=int, default=100)
     parser.add_argument("--evaluate_every", default=20, type=int)

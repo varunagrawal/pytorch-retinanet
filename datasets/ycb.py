@@ -59,7 +59,7 @@ class YCBDataset(Dataset):
         return classes
 
     def num_classes(self):
-        return len(self.classes) + 1  # extra class for background
+        return len(self.classes)
 
     def load_image(self, index):
         # data_list has key from 0001 to 0090, num videos
