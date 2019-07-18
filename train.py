@@ -223,8 +223,9 @@ def main(args=None):
 
             else:
                 print("Evaluating dataset")
-                mAP = eval.evaluate(dataset_val, retinanet)
-                print("Val set mAP: ", np.asarray(mAP.keys()).mean())
+                AP = eval.evaluate(dataset_val, retinanet)
+                mAP = np.asarray([x[0] for x in AP.values()]).mean()
+                print("Val set mAP: ", mAP)
 
             if mAP > best_mean_avg_prec:
                 best_mean_avg_prec = mAP
