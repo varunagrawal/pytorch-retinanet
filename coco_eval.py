@@ -10,6 +10,11 @@ import torch
 
 def evaluate_coco(dataset, model, threshold=0.05):
 
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
+
     model.eval()
 
     with torch.no_grad():
@@ -22,9 +27,9 @@ def evaluate_coco(dataset, model, threshold=0.05):
             data = dataset[index]
             scale = data['scale']
 
+            img = data['img'].permute(2, 0, 1).to(device).float().unsqueeze(dim=0)
             # run network
-            scores, labels, boxes = model(data['img'].permute(
-                2, 0, 1).cuda().float().unsqueeze(dim=0))
+            scores, labels, boxes = model()
             scores = scores.cpu()
             labels = labels.cpu()
             boxes = boxes.cpu()

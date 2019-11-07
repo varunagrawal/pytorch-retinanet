@@ -26,8 +26,6 @@ from torch.utils.data import Dataset, DataLoader
 import coco_eval
 import eval
 
-print("CUDA available: {}".format(torch.cuda.is_available()))
-
 
 def main(args=None):
 
@@ -52,6 +50,9 @@ def main(args=None):
     parser.add_argument("--epochs", help="Number of epochs",
                         type=int, default=100)
     parser.add_argument("--evaluate_every", default=20, type=int)
+    parser.add_argument('--distributed',
+                        action="store_true",
+                        help='Run model in distributed mode with DataParallel')
 
     parser = parser.parse_args(args)
 
@@ -144,14 +145,16 @@ def main(args=None):
         raise ValueError(
             "Unsupported model depth, must be one of 18, 34, 50, 101, 152")
 
-    use_gpu = True
+    print("CUDA available: {}".format(torch.cuda.is_available()))
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
 
-    if use_gpu:
-        retinanet = retinanet.cuda()
+    retinanet = retinanet.to(device)
 
-    # retinanet = torch.nn.DataParallel(retinanet).cuda()
-
-    retinanet.training = True
+    if parser.distributed:
+        retinanet = torch.nn.DataParallel(retinanet)
 
     optimizer = optim.Adam(retinanet.parameters(), lr=1e-5)
 
@@ -176,8 +179,8 @@ def main(args=None):
             try:
                 optimizer.zero_grad()
 
-                classification_loss, regression_loss = retinanet(
-                    [data["img"].cuda().float(), data["annot"]])
+                classification_loss, regression_loss = retinanet([data["img"].to(device).float(),
+                                                                  data["annot"]])
 
                 classification_loss = classification_loss.mean()
                 regression_loss = regression_loss.mean()
@@ -230,7 +233,7 @@ def main(args=None):
             if mAP > best_mean_avg_prec:
                 best_mean_avg_prec = mAP
                 torch.save(retinanet.state_dict(), "{}_retinanet_best_mean_ap_{}.pt".format(parser.dataset,
-                                                                               epoch_num))
+                                                                                            epoch_num))
 
         scheduler.step(np.mean(epoch_loss))
 
