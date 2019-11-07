@@ -50,6 +50,7 @@ def main(args=None):
     parser.add_argument("--epochs", help="Number of epochs",
                         type=int, default=100)
     parser.add_argument("--evaluate_every", default=20, type=int)
+    parser.add_argument("--print_every", default=20, type=int)
     parser.add_argument('--distributed',
                         action="store_true",
                         help='Run model in distributed mode with DataParallel')
@@ -199,15 +200,16 @@ def main(args=None):
                 loss_hist.append(float(loss.item()))
                 epoch_loss.append(float(loss.item()))
 
-                print("Epoch: {} | Iteration: {}/{} | "
-                      "Classification loss: {:1.5f} | "
-                      "Regression loss: {:1.5f} | "
-                      "Running loss: {:1.5f}".format(epoch_num,
-                                                     iter_num,
-                                                     len(dataloader_train),
-                                                     float(
-                                                         classification_loss),
-                                                     float(regression_loss), np.mean(loss_hist)))
+                if parser.print_every % iter_num == 0:
+                    print("Epoch: {} | Iteration: {}/{} | "
+                        "Classification loss: {:1.5f} | "
+                        "Regression loss: {:1.5f} | "
+                        "Running loss: {:1.5f}".format(epoch_num,
+                                                        iter_num,
+                                                        len(dataloader_train),
+                                                        float(
+                                                            classification_loss),
+                                                        float(regression_loss), np.mean(loss_hist)))
 
                 del classification_loss
                 del regression_loss
