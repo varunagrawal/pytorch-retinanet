@@ -229,14 +229,14 @@ def main(args=None):
 
             if mAP > best_mean_avg_prec:
                 best_mean_avg_prec = mAP
-                torch.save(retinanet, "{}_retinanet_best_mean_ap_{}.pt".format(parser.dataset,
+                torch.save(retinanet.state_dict(), "{}_retinanet_best_mean_ap_{}.pt".format(parser.dataset,
                                                                                epoch_num))
 
         scheduler.step(np.mean(epoch_loss))
 
     retinanet.eval()
 
-    torch.save(retinanet, "retinanet_model_final.pt")
+    torch.save(retinanet.state_dict(), "retinanet_model_final.pt")
 
 
 if __name__ == "__main__":

@@ -53,7 +53,7 @@ def main(args=None):
     dataloader_val = DataLoader(
         dataset_val, num_workers=1, collate_fn=collater, batch_sampler=sampler_val)
 
-    retinanet = torch.load(parser.model)
+    retinanet.load_state_dict(torch.load(parser.model))
 
     use_gpu = True
 
